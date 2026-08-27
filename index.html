@@ -505,16 +505,119 @@
 
   .clear-btn:hover { color: var(--danger); text-decoration-color: var(--danger); }
   .clear-btn:disabled { color: var(--text-faint); text-decoration-color: transparent; cursor: default; }
+
+  /* --- device sync --- */
+
+  .sync-panel {
+    margin: 20px 0 0;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+
+  .sync-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .sync-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border-strong);
+    flex-shrink: 0;
+  }
+
+  .sync-dot.on { background: var(--accent); }
+
+  .sync-label {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .sync-code-chip {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 6px;
+    padding: 3px 8px;
+    letter-spacing: 0.02em;
+  }
+
+  .sync-link-btn {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    text-decoration: underline;
+    text-decoration-color: var(--border-strong);
+    text-underline-offset: 3px;
+  }
+
+  .sync-link-btn:hover { text-decoration-color: var(--accent); }
+  .sync-link-btn.danger:hover { color: var(--danger); text-decoration-color: var(--danger); }
+
+  .sync-form-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .sync-form-row input[type="text"] {
+    flex: 1;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 8px 10px;
+    outline: none;
+  }
+
+  .sync-form-row input[type="text"]:focus-visible {
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .sync-form-row button.primary-sm {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--accent-contrast);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 0 14px;
+    cursor: pointer;
+  }
+
+  .sync-link-btn:focus-visible,
+  .sync-form-row input[type="text"]:focus-visible,
+  .sync-form-row button.primary-sm:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
 </style>
 
 <div class="page">
   <header class="masthead">
-    <p class="eyebrow">Personal &middot; Private to this browser</p>
+    <p class="eyebrow" id="eyebrow">Personal &middot; Private to this browser</p>
     <h1>Task Ledger</h1>
     <p class="subtitle">Add what needs doing, set a due date and priority if it matters, and check it off when it's done.</p>
   </header>
 
   <hr class="rule">
+
+  <section class="sync-panel" id="sync-panel"></section>
 
   <section class="reminders" id="reminders" aria-live="polite"></section>
 
@@ -542,6 +645,48 @@
     <button class="clear-btn" id="clear-done">Clear completed</button>
   </footer>
 </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  var firebaseConfig = {
+    apiKey: "AIzaSyBiXxvokOsMHgQ25bAkELRrtYemGHSijks",
+    authDomain: "task-ledger-9e9fc.firebaseapp.com",
+    databaseURL: "https://task-ledger-9e9fc-default-rtdb.firebaseio.com",
+    projectId: "task-ledger-9e9fc",
+    storageBucket: "task-ledger-9e9fc.firebasestorage.app",
+    messagingSenderId: "864864528629",
+    appId: "1:864864528629:web:7c9f2d19919ad31a1d3dbc"
+  };
+
+  var fbApp = initializeApp(firebaseConfig);
+  var db = getDatabase(fbApp);
+  var currentUnsub = null;
+
+  window.__sync = {
+    watch: function (code, onData) {
+      if (currentUnsub) { currentUnsub(); currentUnsub = null; }
+      var itemsRef = ref(db, "lists/" + code + "/items");
+      currentUnsub = onValue(itemsRef, function (snapshot) {
+        onData(snapshot.exists() ? snapshot.val() : null);
+      }, function (err) {
+        console.error("sync watch error", err);
+      });
+    },
+    push: function (code, items) {
+      if (!code) return;
+      set(ref(db, "lists/" + code + "/items"), items).catch(function (err) {
+        console.error("sync push error", err);
+      });
+    },
+    stop: function () {
+      if (currentUnsub) { currentUnsub(); currentUnsub = null; }
+    }
+  };
+
+  window.dispatchEvent(new Event("sync-ready"));
+</script>
 
 <script>
 (function () {
@@ -594,16 +739,133 @@
     }
   }
 
+  var SYNC_CODE_KEY = "task-ledger.sync-code";
+  var syncCode = null;
+  try { syncCode = localStorage.getItem(SYNC_CODE_KEY) || null; } catch (e) {}
+  var syncPanelEl = document.getElementById("sync-panel");
+  var syncFormOpen = false;
+  var suppressNextPush = false;
+
   function saveItems(items) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch (e) { /* storage unavailable */ }
+    if (syncCode && window.__sync && !suppressNextPush) {
+      window.__sync.push(syncCode, items);
+    }
+    suppressNextPush = false;
   }
 
-  var items = loadItems();
-  items.forEach(function (it) {
-    if (!it.id) it.id = makeId();
-    if (it.priority === undefined) it.priority = null;
-    if (it.dueDate === undefined) it.dueDate = null;
-  });
+  function normalizeItems(arr) {
+    arr.forEach(function (it) {
+      if (!it.id) it.id = makeId();
+      if (it.priority === undefined) it.priority = null;
+      if (it.dueDate === undefined) it.dueDate = null;
+      if (it.done === undefined) it.done = false;
+    });
+    return arr;
+  }
+
+  var items = normalizeItems(loadItems());
+
+  function makeSyncCode() {
+    return (Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6)).slice(0, 18);
+  }
+
+  function handleRemoteUpdate(remoteItems) {
+    if (remoteItems === null || remoteItems === undefined) {
+      // brand-new / empty shared list — seed it with what's already on this device
+      if (window.__sync) window.__sync.push(syncCode, items);
+      return;
+    }
+    var arr = Array.isArray(remoteItems) ? remoteItems.filter(function (x) { return x; }) :
+      Object.keys(remoteItems).map(function (k) { return remoteItems[k]; });
+    items = normalizeItems(arr);
+    suppressNextPush = true;
+    saveItems(items);
+    render();
+  }
+
+  function connectSync(code) {
+    syncCode = code;
+    try { localStorage.setItem(SYNC_CODE_KEY, code); } catch (e) {}
+    if (window.__sync) window.__sync.watch(code, handleRemoteUpdate);
+    syncFormOpen = false;
+    renderSyncPanel();
+  }
+
+  function disconnectSync() {
+    syncCode = null;
+    try { localStorage.removeItem(SYNC_CODE_KEY); } catch (e) {}
+    if (window.__sync) window.__sync.stop();
+    renderSyncPanel();
+  }
+
+  function renderSyncPanel() {
+    var eyebrowEl = document.getElementById("eyebrow");
+    if (eyebrowEl) eyebrowEl.textContent = syncCode ? "Personal · Synced across your devices" : "Personal · Private to this browser";
+    if (!syncPanelEl) return;
+    var html;
+    if (syncCode) {
+      html =
+        '<div class="sync-row">' +
+          '<span class="sync-dot on"></span>' +
+          '<span class="sync-label">Synced across devices</span>' +
+          '<span class="sync-code-chip">' + escapeHtml(syncCode) + '</span>' +
+          '<button type="button" class="sync-link-btn" id="sync-copy-btn">Copy code</button>' +
+          '<button type="button" class="sync-link-btn danger" id="sync-stop-btn">Stop syncing</button>' +
+        '</div>';
+    } else if (syncFormOpen) {
+      html =
+        '<div class="sync-row">' +
+          '<span class="sync-dot"></span>' +
+          '<span class="sync-label">Not synced &mdash; this device only</span>' +
+        '</div>' +
+        '<div class="sync-form-row">' +
+          '<input type="text" id="sync-code-input" placeholder="Paste a sync code" maxlength="24" aria-label="Sync code">' +
+          '<button type="button" class="primary-sm" id="sync-connect-btn">Connect</button>' +
+        '</div>' +
+        '<p style="margin:8px 0 0;"><button type="button" class="sync-link-btn" id="sync-new-btn">or create a new sync code</button></p>';
+    } else {
+      html =
+        '<div class="sync-row">' +
+          '<span class="sync-dot"></span>' +
+          '<span class="sync-label">Not synced &mdash; this device only</span>' +
+          '<button type="button" class="sync-link-btn" id="sync-open-btn">Set up sync</button>' +
+        '</div>';
+    }
+    syncPanelEl.innerHTML = html;
+
+    var openBtn = document.getElementById("sync-open-btn");
+    if (openBtn) openBtn.addEventListener("click", function () { syncFormOpen = true; renderSyncPanel(); });
+
+    var newBtn = document.getElementById("sync-new-btn");
+    if (newBtn) newBtn.addEventListener("click", function () { connectSync(makeSyncCode()); });
+
+    var connectBtn = document.getElementById("sync-connect-btn");
+    var codeInput = document.getElementById("sync-code-input");
+    if (connectBtn && codeInput) {
+      connectBtn.addEventListener("click", function () {
+        var val = codeInput.value.trim();
+        if (!val) return;
+        connectSync(val);
+      });
+      codeInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); connectBtn.click(); }
+      });
+    }
+
+    var copyBtn = document.getElementById("sync-copy-btn");
+    if (copyBtn) copyBtn.addEventListener("click", function () {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(syncCode).then(function () {
+          copyBtn.textContent = "Copied!";
+          setTimeout(function () { copyBtn.textContent = "Copy code"; }, 1500);
+        }).catch(function () {});
+      }
+    });
+
+    var stopBtn = document.getElementById("sync-stop-btn");
+    if (stopBtn) stopBtn.addEventListener("click", function () { disconnectSync(); });
+  }
 
   function todayStr() {
     var d = new Date();
@@ -827,6 +1089,14 @@
     saveItems(items);
     render();
   });
+
+  renderSyncPanel();
+
+  function startSyncIfSaved() {
+    if (syncCode && window.__sync) window.__sync.watch(syncCode, handleRemoteUpdate);
+  }
+  window.addEventListener("sync-ready", startSyncIfSaved);
+  if (window.__sync) startSyncIfSaved(); // in case the module script already finished
 
   render();
 })();
