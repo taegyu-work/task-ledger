@@ -666,17 +666,22 @@
 
   window.__sync = {
     watch: function (code, onData) {
+      // stored as a JSON string, not a raw array/object — RTDB silently drops
+      // empty arrays/objects, which would make a cleared list look "never created"
+      // and get wrongly re-seeded from stale local data on the other device.
       if (currentUnsub) { currentUnsub(); currentUnsub = null; }
       var itemsRef = ref(db, "lists/" + code + "/items");
       currentUnsub = onValue(itemsRef, function (snapshot) {
-        onData(snapshot.exists() ? snapshot.val() : null);
+        var raw = snapshot.val();
+        if (raw === null || raw === undefined) { onData(null); return; }
+        try { onData(JSON.parse(raw)); } catch (e) { onData(null); }
       }, function (err) {
         console.error("sync watch error", err);
       });
     },
     push: function (code, items) {
       if (!code) return;
-      set(ref(db, "lists/" + code + "/items"), items).catch(function (err) {
+      set(ref(db, "lists/" + code + "/items"), JSON.stringify(items)).catch(function (err) {
         console.error("sync push error", err);
       });
     },
