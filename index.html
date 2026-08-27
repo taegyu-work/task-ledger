@@ -303,6 +303,9 @@
   .segmented button[data-active="true"][data-level="med"] { background: var(--pri-med-soft); color: var(--pri-med); }
   .segmented button[data-active="true"][data-level="high"] { background: var(--pri-high-soft); color: var(--pri-high); }
 
+  .view-toggle { margin: 4px 0 20px; }
+  .view-toggle button[data-active="true"] { background: var(--accent-soft); color: var(--accent); }
+
   input[type="date"] {
     font-family: var(--font-mono);
     font-size: 12.5px;
@@ -809,6 +812,163 @@
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }
+
+  /* --- timeline view --- */
+
+  .timeline-wrap {
+    margin-top: 4px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: var(--surface);
+  }
+
+  .timeline-grid { min-width: max-content; }
+
+  .timeline-header-row, .timeline-track-row {
+    display: flex;
+  }
+
+  .timeline-name-header, .timeline-name-cell {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    flex-shrink: 0;
+    width: 168px;
+    background: var(--surface);
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border-strong);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .timeline-name-header {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-weight: 600;
+  }
+
+  .timeline-name-cell.done { color: var(--text-faint); text-decoration: line-through; }
+
+  .timeline-days {
+    display: flex;
+    position: relative;
+  }
+
+  .timeline-day-header {
+    flex-shrink: 0;
+    width: 40px;
+    text-align: center;
+    padding: 6px 0 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .timeline-day-header .dow {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .timeline-day-header.weekend { background: var(--surface-2); }
+  .timeline-day-header.is-today { color: var(--accent); font-weight: 700; }
+
+  .timeline-track-row { position: relative; height: 40px; }
+
+  .timeline-track-bg { position: absolute; inset: 0; display: flex; }
+
+  .timeline-track-bg span {
+    flex-shrink: 0;
+    width: 40px;
+    height: 100%;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .timeline-track-bg span.weekend { background: var(--surface-2); }
+
+  .timeline-today-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--accent);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .timeline-bar {
+    position: absolute;
+    top: 8px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--accent-contrast);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .timeline-bar.pri-high { background: var(--pri-high); }
+  .timeline-bar.pri-med { background: var(--pri-med); }
+  .timeline-bar.pri-low { background: var(--pri-low); }
+  .timeline-bar.pri-none { background: var(--text-faint); }
+
+  .timeline-bar.milestone {
+    width: 22px;
+    border-radius: 50%;
+    padding: 0;
+  }
+
+  .timeline-bar.done { opacity: 0.45; text-decoration: line-through; }
+
+  .timeline-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 14px;
+  }
+
+  .timeline-unscheduled {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .timeline-unscheduled-heading {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 0 0 8px;
+  }
+
+  .timeline-unscheduled-item {
+    font-size: 13.5px;
+    padding: 4px 0;
+    color: var(--text-muted);
+  }
 </style>
 
 <div class="page">
@@ -819,6 +979,11 @@
   </header>
 
   <hr class="rule">
+
+  <div class="segmented view-toggle" id="view-toggle" role="group" aria-label="View">
+    <button type="button" data-view="list" data-active="true">List</button>
+    <button type="button" data-view="timeline" data-active="false">Timeline</button>
+  </div>
 
   <section class="sync-panel" id="sync-panel"></section>
 
@@ -836,6 +1001,8 @@
         <button type="button" data-level="med">Med</button>
         <button type="button" data-level="high">High</button>
       </div>
+      <span class="field-label">Start</span>
+      <input type="date" id="add-start" aria-label="Start date">
       <span class="field-label">Due</span>
       <input type="date" id="add-due" aria-label="Due date">
       <span class="field-label">Tag</span>
@@ -847,24 +1014,28 @@
 
   <div class="tag-filter-bar" id="tag-filter-bar"></div>
 
-  <ul class="list" id="list" role="list"></ul>
+  <div id="list-view">
+    <ul class="list" id="list" role="list"></ul>
 
-  <footer class="status-bar">
-    <span class="count" id="count"></span>
-    <button class="clear-btn" id="clear-done">Clear completed</button>
-  </footer>
+    <footer class="status-bar">
+      <span class="count" id="count"></span>
+      <button class="clear-btn" id="clear-done">Clear completed</button>
+    </footer>
 
-  <div class="data-row">
-    <button type="button" class="sync-link-btn" id="export-btn">Export backup</button>
-    <button type="button" class="sync-link-btn" id="import-btn">Import backup</button>
-    <input type="file" id="import-file" accept="application/json" hidden>
-    <button type="button" class="sync-link-btn" id="archive-toggle-btn">View archive</button>
+    <div class="data-row">
+      <button type="button" class="sync-link-btn" id="export-btn">Export backup</button>
+      <button type="button" class="sync-link-btn" id="import-btn">Import backup</button>
+      <input type="file" id="import-file" accept="application/json" hidden>
+      <button type="button" class="sync-link-btn" id="archive-toggle-btn">View archive</button>
+    </div>
+
+    <section class="archive-panel" id="archive-panel">
+      <p class="archive-heading">Archived tasks</p>
+      <div id="archive-list"></div>
+    </section>
   </div>
 
-  <section class="archive-panel" id="archive-panel">
-    <p class="archive-heading">Archived tasks</p>
-    <div id="archive-list"></div>
-  </section>
+  <div id="timeline-view" hidden></div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite">
@@ -925,11 +1096,17 @@
   var listEl = document.getElementById("list");
   var formEl = document.getElementById("add-form");
   var inputEl = document.getElementById("add-input");
+  var startEl = document.getElementById("add-start");
   var dueEl = document.getElementById("add-due");
   var tagEl = document.getElementById("add-tag");
   var tagOptionsEl = document.getElementById("tag-options");
   var tagFilterBarEl = document.getElementById("tag-filter-bar");
   var activeTagFilter = null;
+  var viewToggleEl = document.getElementById("view-toggle");
+  var listViewEl = document.getElementById("list-view");
+  var timelineViewEl = document.getElementById("timeline-view");
+  var currentView = "list";
+  var DAY_WIDTH = 40;
   var pickerEl = document.getElementById("priority-picker");
   var countEl = document.getElementById("count");
   var clearBtn = document.getElementById("clear-done");
@@ -1025,6 +1202,7 @@
       if (it.done === undefined) it.done = false;
       if (it.archived === undefined) it.archived = false;
       if (it.tag === undefined) it.tag = null;
+      if (it.startDate === undefined) it.startDate = null;
     });
     return arr;
   }
@@ -1232,6 +1410,7 @@
     renderReminders();
     renderArchivePanel();
     renderTagFilter();
+    renderTimeline();
     listEl.innerHTML = "";
 
     var visible = items.filter(function (it) { return !it.archived; });
@@ -1304,6 +1483,18 @@
           render();
         });
 
+        var start = document.createElement("input");
+        start.type = "date";
+        start.className = "due-input";
+        start.value = item.startDate || "";
+        start.setAttribute("aria-label", "Start date");
+        start.setAttribute("title", "Start date (for the Timeline view)");
+        start.addEventListener("change", function () {
+          item.startDate = start.value || null;
+          saveItems(items);
+          render();
+        });
+
         var due = document.createElement("input");
         due.type = "date";
         due.className = "due-input";
@@ -1352,6 +1543,7 @@
         });
 
         controls.appendChild(pri);
+        controls.appendChild(start);
         controls.appendChild(due);
         controls.appendChild(tagInput);
         controls.appendChild(del);
@@ -1427,6 +1619,129 @@
     renderArchivePanel();
   });
 
+  viewToggleEl.querySelectorAll("button").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      currentView = btn.getAttribute("data-view");
+      viewToggleEl.querySelectorAll("button").forEach(function (b) {
+        b.setAttribute("data-active", b === btn ? "true" : "false");
+      });
+      listViewEl.hidden = currentView !== "list";
+      timelineViewEl.hidden = currentView !== "timeline";
+    });
+  });
+
+  function renderTimeline() {
+    function toDate(s) {
+      var p = s.split("-").map(Number);
+      return new Date(p[0], p[1] - 1, p[2]);
+    }
+
+    var dated = items.filter(function (it) {
+      return !it.archived && (it.dueDate || it.startDate) && (!activeTagFilter || it.tag === activeTagFilter);
+    });
+    var unscheduled = items.filter(function (it) {
+      return !it.archived && !it.dueDate && !it.startDate && (!activeTagFilter || it.tag === activeTagFilter);
+    });
+
+    if (dated.length === 0) {
+      timelineViewEl.innerHTML = '<p class="timeline-empty">No dated tasks yet &mdash; set a due date (and optionally a start date) on a task to see it here.</p>';
+      return;
+    }
+
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var minD = new Date(today), maxD = new Date(today);
+
+    dated.forEach(function (it) {
+      var s = it.startDate ? toDate(it.startDate) : (it.dueDate ? toDate(it.dueDate) : null);
+      var e = it.dueDate ? toDate(it.dueDate) : (it.startDate ? toDate(it.startDate) : null);
+      if (s && s < minD) minD = new Date(s);
+      if (e && e > maxD) maxD = new Date(e);
+    });
+    minD.setDate(minD.getDate() - 3);
+    maxD.setDate(maxD.getDate() + 3);
+
+    var MIN_DAYS = 21;
+    var totalDays = Math.round((maxD - minD) / 86400000) + 1;
+    if (totalDays < MIN_DAYS) {
+      var pad = Math.ceil((MIN_DAYS - totalDays) / 2);
+      minD.setDate(minD.getDate() - pad);
+      maxD.setDate(maxD.getDate() + pad);
+      totalDays = Math.round((maxD - minD) / 86400000) + 1;
+    }
+
+    function dayIndex(d) { return Math.round((d - minD) / 86400000); }
+
+    var daysHtml = "";
+    var bgHtml = "";
+    for (var i = 0; i < totalDays; i++) {
+      var d = new Date(minD);
+      d.setDate(d.getDate() + i);
+      var isWeekend = d.getDay() === 0 || d.getDay() === 6;
+      var isToday = d.getTime() === today.getTime();
+      daysHtml += '<div class="timeline-day-header' + (isWeekend ? " weekend" : "") + (isToday ? " is-today" : "") + '">' +
+        d.getDate() + '<span class="dow">' + d.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 2) + '</span></div>';
+      bgHtml += '<span' + (isWeekend ? ' class="weekend"' : "") + '></span>';
+    }
+
+    var todayOffset = dayIndex(today);
+    var todayLineHtml = (todayOffset >= 0 && todayOffset < totalDays)
+      ? '<div class="timeline-today-line" style="left:' + (todayOffset * DAY_WIDTH + DAY_WIDTH / 2) + 'px"></div>'
+      : "";
+
+    var rowsHtml = "";
+    dated.slice().sort(compareItems).forEach(function (item) {
+      var s = item.startDate ? toDate(item.startDate) : toDate(item.dueDate);
+      var e = item.dueDate ? toDate(item.dueDate) : toDate(item.startDate);
+      var startIdx = dayIndex(s);
+      var endIdx = dayIndex(e);
+      var isMilestone = !item.startDate;
+      var barLeft, barWidth;
+      if (isMilestone) {
+        barLeft = endIdx * DAY_WIDTH + (DAY_WIDTH - 22) / 2;
+        barWidth = 22;
+      } else {
+        barLeft = startIdx * DAY_WIDTH + 3;
+        barWidth = Math.max(22, (endIdx - startIdx + 1) * DAY_WIDTH - 6);
+      }
+      var priClass = item.priority ? "pri-" + item.priority : "pri-none";
+      rowsHtml +=
+        '<div class="timeline-track-row">' +
+          '<div class="timeline-name-cell' + (item.done ? " done" : "") + '">' + escapeHtml(item.text) + "</div>" +
+          '<div class="timeline-days">' +
+            '<div class="timeline-track-bg">' + bgHtml + "</div>" +
+            todayLineHtml +
+            '<div class="timeline-bar ' + priClass + (isMilestone ? " milestone" : "") + (item.done ? " done" : "") +
+              '" style="left:' + barLeft + "px;width:" + barWidth + 'px" title="' + escapeHtml(item.text) + '">' +
+              (isMilestone ? "" : escapeHtml(item.text)) +
+            "</div>" +
+          "</div>" +
+        "</div>";
+    });
+
+    var html =
+      '<div class="timeline-wrap"><div class="timeline-grid">' +
+        '<div class="timeline-header-row">' +
+          '<div class="timeline-name-header">Task</div>' +
+          '<div class="timeline-days">' + daysHtml + "</div>" +
+        "</div>" +
+        rowsHtml +
+      "</div></div>";
+
+    if (unscheduled.length > 0) {
+      html += '<div class="timeline-unscheduled"><p class="timeline-unscheduled-heading">No dates set</p>' +
+        unscheduled.map(function (it) {
+          return '<p class="timeline-unscheduled-item">' + escapeHtml(it.text) + "</p>";
+        }).join("") +
+        "</div>";
+    }
+
+    timelineViewEl.innerHTML = html;
+
+    var wrap = timelineViewEl.querySelector(".timeline-wrap");
+    if (wrap) wrap.scrollLeft = Math.max(0, (todayOffset - 2) * DAY_WIDTH);
+  }
+
   function renderTagFilter() {
     var tags = [];
     items.forEach(function (it) {
@@ -1473,11 +1788,13 @@
       archived: false,
       createdAt: Date.now(),
       priority: pendingPriority,
+      startDate: startEl.value || null,
       dueDate: dueEl.value || null,
       tag: tagEl.value.trim() || null
     });
     saveItems(items);
     inputEl.value = "";
+    startEl.value = "";
     dueEl.value = "";
     tagEl.value = "";
     setPickerState(null);
