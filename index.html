@@ -606,6 +606,130 @@
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }
+
+  /* --- data utilities row (export / import / archive) --- */
+
+  .data-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  /* --- archive panel --- */
+
+  .archive-panel {
+    display: none;
+    margin: 14px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .archive-panel.open { display: block; }
+
+  .archive-heading {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 0 0 10px;
+  }
+
+  .archive-empty {
+    font-size: 13px;
+    color: var(--text-faint);
+    margin: 0;
+  }
+
+  .archive-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 2px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .archive-item:last-child { border-bottom: none; }
+
+  .archive-item-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    color: var(--text-faint);
+    text-decoration: line-through;
+    text-decoration-color: var(--border-strong);
+    overflow-wrap: break-word;
+  }
+
+  .archive-restore-btn, .archive-delete-btn {
+    flex-shrink: 0;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 3px 6px;
+  }
+
+  .archive-restore-btn { color: var(--accent); }
+  .archive-restore-btn:hover { text-decoration: underline; }
+  .archive-delete-btn { color: var(--text-faint); }
+  .archive-delete-btn:hover { color: var(--danger); }
+
+  /* --- undo toast --- */
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translate(-50%, 12px);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--text);
+    color: var(--bg);
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    z-index: 100;
+    max-width: calc(100vw - 48px);
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+  }
+
+  .toast-undo-btn {
+    flex-shrink: 0;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 13.5px;
+    color: var(--accent);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+  }
+
+  :root:not([data-theme="light"]) .toast-undo-btn { color: var(--accent); }
+
+  .archive-restore-btn:focus-visible,
+  .archive-delete-btn:focus-visible,
+  .toast-undo-btn:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
 </style>
 
 <div class="page">
@@ -644,6 +768,23 @@
     <span class="count" id="count"></span>
     <button class="clear-btn" id="clear-done">Clear completed</button>
   </footer>
+
+  <div class="data-row">
+    <button type="button" class="sync-link-btn" id="export-btn">Export backup</button>
+    <button type="button" class="sync-link-btn" id="import-btn">Import backup</button>
+    <input type="file" id="import-file" accept="application/json" hidden>
+    <button type="button" class="sync-link-btn" id="archive-toggle-btn">View archive</button>
+  </div>
+
+  <section class="archive-panel" id="archive-panel">
+    <p class="archive-heading">Archived tasks</p>
+    <div id="archive-list"></div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span id="toast-message"></span>
+  <button type="button" class="toast-undo-btn" id="toast-undo-btn">Undo</button>
 </div>
 
 <script type="module">
@@ -704,8 +845,36 @@
   var countEl = document.getElementById("count");
   var clearBtn = document.getElementById("clear-done");
   var remindersEl = document.getElementById("reminders");
+  var archivePanelEl = document.getElementById("archive-panel");
+  var archiveListEl = document.getElementById("archive-list");
+  var archiveToggleBtn = document.getElementById("archive-toggle-btn");
+  var exportBtn = document.getElementById("export-btn");
+  var importBtn = document.getElementById("import-btn");
+  var importFileEl = document.getElementById("import-file");
+  var toastEl = document.getElementById("toast");
+  var toastMessageEl = document.getElementById("toast-message");
+  var toastUndoBtn = document.getElementById("toast-undo-btn");
+  var archiveOpen = false;
+  var toastTimer = null;
 
   function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  function showUndoToast(message, undoFn) {
+    if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+    toastMessageEl.textContent = message;
+    toastEl.classList.add("show");
+    var handler = function () {
+      undoFn();
+      hideToast();
+    };
+    toastUndoBtn.onclick = handler;
+    toastTimer = setTimeout(hideToast, 6000);
+  }
+
+  function hideToast() {
+    toastEl.classList.remove("show");
+    if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+  }
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -765,6 +934,7 @@
       if (it.priority === undefined) it.priority = null;
       if (it.dueDate === undefined) it.dueDate = null;
       if (it.done === undefined) it.done = false;
+      if (it.archived === undefined) it.archived = false;
     });
     return arr;
   }
@@ -960,15 +1130,18 @@
 
   function render() {
     renderReminders();
+    renderArchivePanel();
     listEl.innerHTML = "";
 
-    if (items.length === 0) {
+    var visible = items.filter(function (it) { return !it.archived; });
+
+    if (visible.length === 0) {
       var empty = document.createElement("li");
       empty.className = "empty-state";
       empty.innerHTML = '<span class="glyph">&#9634;</span>Nothing on the ledger yet.';
       listEl.appendChild(empty);
     } else {
-      items.slice().sort(compareItems).forEach(function (item) {
+      visible.slice().sort(compareItems).forEach(function (item) {
         var li = document.createElement("li");
         li.id = "task-" + item.id;
         li.className = "item" + (item.done ? " done" : "");
@@ -1045,9 +1218,14 @@
         del.setAttribute("aria-label", "Delete task");
         del.innerHTML = "&#10005;";
         del.addEventListener("click", function () {
-          items = items.filter(function (it) { return it !== item; });
+          item.archived = true;
           saveItems(items);
           render();
+          showUndoToast("Task deleted", function () {
+            item.archived = false;
+            saveItems(items);
+            render();
+          });
         });
 
         controls.appendChild(pri);
@@ -1063,11 +1241,67 @@
       });
     }
 
-    var remaining = items.filter(function (it) { return !it.done; }).length;
-    var doneCount = items.length - remaining;
-    countEl.innerHTML = items.length === 0 ? "" : "<strong>" + remaining + "</strong> open &middot; " + doneCount + " done";
+    var remaining = visible.filter(function (it) { return !it.done; }).length;
+    var doneCount = visible.length - remaining;
+    countEl.innerHTML = visible.length === 0 ? "" : "<strong>" + remaining + "</strong> open &middot; " + doneCount + " done";
     clearBtn.disabled = doneCount === 0;
   }
+
+  function restoreItem(item) {
+    item.archived = false;
+    saveItems(items);
+    render();
+  }
+
+  function deleteForever(item) {
+    items = items.filter(function (it) { return it !== item; });
+    saveItems(items);
+    render();
+  }
+
+  function renderArchivePanel() {
+    var archived = items.filter(function (it) { return it.archived; });
+    archiveToggleBtn.textContent = archiveOpen ? "Hide archive" : "View archive" + (archived.length ? " (" + archived.length + ")" : "");
+    archivePanelEl.classList.toggle("open", archiveOpen);
+    if (!archiveOpen) return;
+
+    if (archived.length === 0) {
+      archiveListEl.innerHTML = '<p class="archive-empty">Nothing archived yet — deleted and cleared tasks land here.</p>';
+      return;
+    }
+
+    archiveListEl.innerHTML = "";
+    archived.slice().sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); }).forEach(function (item) {
+      var row = document.createElement("div");
+      row.className = "archive-item";
+
+      var text = document.createElement("span");
+      text.className = "archive-item-text";
+      text.textContent = item.text;
+
+      var restoreBtn = document.createElement("button");
+      restoreBtn.type = "button";
+      restoreBtn.className = "archive-restore-btn";
+      restoreBtn.textContent = "Restore";
+      restoreBtn.addEventListener("click", function () { restoreItem(item); });
+
+      var deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "archive-delete-btn";
+      deleteBtn.textContent = "Delete forever";
+      deleteBtn.addEventListener("click", function () { deleteForever(item); });
+
+      row.appendChild(text);
+      row.appendChild(restoreBtn);
+      row.appendChild(deleteBtn);
+      archiveListEl.appendChild(row);
+    });
+  }
+
+  archiveToggleBtn.addEventListener("click", function () {
+    archiveOpen = !archiveOpen;
+    renderArchivePanel();
+  });
 
   formEl.addEventListener("submit", function (e) {
     e.preventDefault();
@@ -1090,9 +1324,17 @@
   });
 
   clearBtn.addEventListener("click", function () {
-    items = items.filter(function (it) { return !it.done; });
+    var justArchived = items.filter(function (it) { return !it.archived && it.done; });
+    if (justArchived.length === 0) return;
+    justArchived.forEach(function (it) { it.archived = true; });
     saveItems(items);
     render();
+    var n = justArchived.length;
+    showUndoToast(n + (n === 1 ? " task" : " tasks") + " archived", function () {
+      justArchived.forEach(function (it) { it.archived = false; });
+      saveItems(items);
+      render();
+    });
   });
 
   renderSyncPanel();
@@ -1102,6 +1344,80 @@
   }
   window.addEventListener("sync-ready", startSyncIfSaved);
   if (window.__sync) startSyncIfSaved(); // in case the module script already finished
+
+  exportBtn.addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(items, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = "task-ledger-backup-" + stamp + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  });
+
+  importBtn.addEventListener("click", function () { importFileEl.click(); });
+
+  importFileEl.addEventListener("change", function () {
+    var file = importFileEl.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var imported;
+      try { imported = JSON.parse(reader.result); } catch (e) {
+        alert("That file isn't valid JSON — couldn't import it.");
+        importFileEl.value = "";
+        return;
+      }
+      if (!Array.isArray(imported)) {
+        alert("That file doesn't look like a Task Ledger backup.");
+        importFileEl.value = "";
+        return;
+      }
+      var existingIds = {};
+      items.forEach(function (it) { existingIds[it.id] = true; });
+      var addedItems = [];
+      imported.forEach(function (it) {
+        if (it && typeof it.text === "string" && it.id && !existingIds[it.id]) {
+          items.push(it);
+          existingIds[it.id] = true;
+          addedItems.push(it);
+        }
+      });
+      importFileEl.value = "";
+      if (addedItems.length === 0) {
+        alert("Nothing new to import — every task in that file is already here.");
+        return;
+      }
+      items = normalizeItems(items);
+      saveItems(items);
+      render();
+      var n = addedItems.length;
+      showUndoToast(n + (n === 1 ? " task" : " tasks") + " imported", function () {
+        items = items.filter(function (it) { return addedItems.indexOf(it) === -1; });
+        saveItems(items);
+        render();
+      });
+    };
+    reader.readAsText(file);
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "n" || e.metaKey || e.ctrlKey || e.altKey) return;
+    var active = document.activeElement;
+    var tag = active && active.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || (active && active.isContentEditable)) return;
+    e.preventDefault();
+    inputEl.focus();
+  });
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function (e) { console.error("SW registration failed", e); });
+    });
+  }
 
   render();
 })();
