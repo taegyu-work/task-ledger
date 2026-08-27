@@ -776,10 +776,8 @@
   }
 
   function handleRemoteUpdate(remoteItems) {
-    console.log("[DEBUG] handleRemoteUpdate fired with:", JSON.stringify(remoteItems));
     if (remoteItems === null || remoteItems === undefined) {
       // brand-new / empty shared list — seed it with what's already on this device
-      console.log("[DEBUG] remote is null, re-pushing local items:", JSON.stringify(items));
       if (window.__sync) window.__sync.push(syncCode, items);
       return;
     }
@@ -1092,11 +1090,8 @@
   });
 
   clearBtn.addEventListener("click", function () {
-    console.log("[DEBUG] clear clicked, items before:", JSON.stringify(items));
     items = items.filter(function (it) { return !it.done; });
-    console.log("[DEBUG] items after filter:", JSON.stringify(items));
     saveItems(items);
-    console.log("[DEBUG] localStorage after saveItems:", localStorage.getItem(STORAGE_KEY));
     render();
   });
 
