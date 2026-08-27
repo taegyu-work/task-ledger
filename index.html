@@ -1,0 +1,833 @@
+<title>Task Ledger</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2f6b5e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Task Ledger">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #f1efe9;
+    --surface: #ffffff;
+    --surface-2: #e9e5d9;
+    --border: #dcd7c9;
+    --border-strong: #c7c1af;
+    --text: #221f1a;
+    --text-muted: #6e6a5c;
+    --text-faint: #948e7c;
+    --accent: #2f6b5e;
+    --accent-soft: #e2ede9;
+    --accent-contrast: #ffffff;
+    --danger: #ab4a3a;
+    --danger-soft: #f4e5e1;
+    --focus-ring: #2f6b5e;
+
+    /* priority semantics — deliberately distinct from the teal brand accent */
+    --pri-high: #ab4a3a;
+    --pri-high-soft: #f4e5e1;
+    --pri-med: #a8752a;
+    --pri-med-soft: #f2e6d2;
+    --pri-low: #4f7089;
+    --pri-low-soft: #e4ebf0;
+    --pri-none-text: var(--text-faint);
+    --pri-none-border: var(--border-strong);
+
+    --calendar-filter: none;
+
+    --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+    --font-body: "Public Sans", -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1a1916;
+      --surface: #242220;
+      --surface-2: #2c2a25;
+      --border: #3b382f;
+      --border-strong: #4c483c;
+      --text: #ece8de;
+      --text-muted: #a39d8c;
+      --text-faint: #7d7768;
+      --accent: #72b69f;
+      --accent-soft: #223330;
+      --accent-contrast: #12211d;
+      --danger: #dd8c7a;
+      --danger-soft: #3a2620;
+      --focus-ring: #72b69f;
+
+      --pri-high: #e08a76;
+      --pri-high-soft: #3a2620;
+      --pri-med: #d1a355;
+      --pri-med-soft: #362d1c;
+      --pri-low: #8fb0c4;
+      --pri-low-soft: #1f2c33;
+
+      --calendar-filter: invert(0.85);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #1a1916;
+    --surface: #242220;
+    --surface-2: #2c2a25;
+    --border: #3b382f;
+    --border-strong: #4c483c;
+    --text: #ece8de;
+    --text-muted: #a39d8c;
+    --text-faint: #7d7768;
+    --accent: #72b69f;
+    --accent-soft: #223330;
+    --accent-contrast: #12211d;
+    --danger: #dd8c7a;
+    --danger-soft: #3a2620;
+    --focus-ring: #72b69f;
+
+    --pri-high: #e08a76;
+    --pri-high-soft: #3a2620;
+    --pri-med: #d1a355;
+    --pri-med-soft: #362d1c;
+    --pri-low: #8fb0c4;
+    --pri-low-soft: #1f2c33;
+
+    --calendar-filter: invert(0.85);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  .page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 64px 24px 96px;
+  }
+
+  header.masthead { margin-bottom: 40px; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-size: 34px;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+    text-wrap: balance;
+    color: var(--text);
+  }
+
+  .subtitle {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14.5px;
+    max-width: 46ch;
+  }
+
+  .rule {
+    border: none;
+    border-top: 1px solid var(--border-strong);
+    margin: 28px 0 0;
+  }
+
+  /* --- due-date reminders --- */
+
+  .reminders { display: none; margin: 20px 0 4px; }
+  .reminder-group + .reminder-group { margin-top: 14px; }
+
+  .reminder-heading {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .group-overdue .reminder-heading { color: var(--pri-high); }
+  .group-today .reminder-heading { color: var(--pri-med); }
+
+  .reminder-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .reminder-chip {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 6px 12px;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    cursor: pointer;
+    border: 1px solid;
+    transition: opacity 0.12s ease;
+  }
+
+  .reminder-chip:hover { opacity: 0.8; }
+
+  .group-overdue .reminder-chip { border-color: var(--pri-high); background: var(--pri-high-soft); color: var(--pri-high); }
+  .group-today .reminder-chip { border-color: var(--pri-med); background: var(--pri-med-soft); color: var(--pri-med); }
+
+  @keyframes flash-bg {
+    0% { background: var(--accent-soft); }
+    100% { background: transparent; }
+  }
+
+  li.item.flash { animation: flash-bg 1.2s ease; border-radius: 6px; }
+
+  /* --- add form --- */
+
+  form.add-form { margin: 28px 0 4px; }
+
+  .add-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .add-row input[type="text"] {
+    flex: 1;
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .add-row input[type="text"]::placeholder { color: var(--text-faint); }
+
+  .add-row input[type="text"]:focus-visible {
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .add-row > button.primary {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14.5px;
+    color: var(--accent-contrast);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 0 20px;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+
+  .add-row > button.primary:hover { opacity: 0.88; }
+
+  .add-options {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .add-options .field-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .segmented {
+    display: inline-flex;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .segmented button {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: none;
+    border-left: 1px solid var(--border-strong);
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+
+  .segmented button:first-child { border-left: none; }
+
+  .segmented button[data-active="true"][data-level="low"] { background: var(--pri-low-soft); color: var(--pri-low); }
+  .segmented button[data-active="true"][data-level="med"] { background: var(--pri-med-soft); color: var(--pri-med); }
+  .segmented button[data-active="true"][data-level="high"] { background: var(--pri-high-soft); color: var(--pri-high); }
+
+  input[type="date"] {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 6px 10px;
+    outline: none;
+  }
+
+  input[type="date"]:focus-visible {
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: var(--calendar-filter);
+    cursor: pointer;
+  }
+
+  .add-row > button.primary:focus-visible,
+  .icon-btn:focus-visible,
+  .segmented button:focus-visible,
+  .priority-pill:focus-visible,
+  .reminder-chip:focus-visible,
+  input[type="checkbox"]:focus-visible,
+  input[type="date"]:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* --- list --- */
+
+  ul.list {
+    list-style: none;
+    margin: 24px 0 0;
+    padding: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  li.item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 2px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .checkbox-wrap {
+    position: relative;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+  }
+
+  input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 5px;
+    background: var(--surface);
+    cursor: pointer;
+    display: grid;
+    place-content: center;
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
+
+  input[type="checkbox"]:hover { border-color: var(--accent); }
+  input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+
+  input[type="checkbox"]::after {
+    content: "";
+    width: 10px;
+    height: 10px;
+    transform: scale(0);
+    transition: transform 0.12s ease;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    background: var(--accent-contrast);
+  }
+
+  input[type="checkbox"]:checked::after { transform: scale(1); }
+
+  .item-main { flex: 1; min-width: 0; }
+
+  .item-text {
+    display: block;
+    font-size: 15px;
+    color: var(--text);
+    word-wrap: break-word;
+    cursor: text;
+    outline: none;
+  }
+
+  .item-text:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  li.done .item-text {
+    color: var(--text-faint);
+    text-decoration: line-through;
+    text-decoration-color: var(--border-strong);
+  }
+
+  .item-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 7px;
+  }
+
+  .priority-pill {
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-radius: 20px;
+    padding: 3px 10px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px dashed var(--pri-none-border);
+    color: var(--pri-none-text);
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  }
+
+  .priority-pill[data-level="low"] { border: 1px solid var(--pri-low); background: var(--pri-low-soft); color: var(--pri-low); }
+  .priority-pill[data-level="med"] { border: 1px solid var(--pri-med); background: var(--pri-med-soft); color: var(--pri-med); }
+  .priority-pill[data-level="high"] { border: 1px solid var(--pri-high); background: var(--pri-high-soft); color: var(--pri-high); }
+
+  .due-input.urgency-overdue { color: var(--pri-high); border-color: var(--pri-high); }
+  .due-input.urgency-today { color: var(--pri-med); border-color: var(--pri-med); }
+
+  li.done .due-input,
+  li.done .priority-pill { opacity: 0.55; }
+
+  .icon-btn {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    color: var(--text-faint);
+    cursor: pointer;
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
+  }
+
+  li.item:hover .icon-btn,
+  li.item:focus-within .icon-btn { opacity: 1; }
+
+  .icon-btn:hover { color: var(--danger); background: var(--danger-soft); }
+
+  .empty-state {
+    padding: 48px 4px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 14px;
+  }
+
+  .empty-state .glyph {
+    font-family: var(--font-display);
+    font-size: 28px;
+    color: var(--border-strong);
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  footer.status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 18px;
+    padding-top: 4px;
+  }
+
+  .count {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .count strong { color: var(--text); font-weight: 600; }
+
+  .clear-btn {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px 2px;
+    text-decoration: underline;
+    text-decoration-color: var(--border-strong);
+    text-underline-offset: 3px;
+  }
+
+  .clear-btn:hover { color: var(--danger); text-decoration-color: var(--danger); }
+  .clear-btn:disabled { color: var(--text-faint); text-decoration-color: transparent; cursor: default; }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">Personal &middot; Private to this browser</p>
+    <h1>Task Ledger</h1>
+    <p class="subtitle">Add what needs doing, set a due date and priority if it matters, and check it off when it's done.</p>
+  </header>
+
+  <hr class="rule">
+
+  <section class="reminders" id="reminders" aria-live="polite"></section>
+
+  <form class="add-form" id="add-form" autocomplete="off">
+    <div class="add-row">
+      <input type="text" id="add-input" placeholder="Add a task and press Enter" maxlength="280" aria-label="New task">
+      <button type="submit" class="primary">Add</button>
+    </div>
+    <div class="add-options">
+      <span class="field-label">Priority</span>
+      <div class="segmented" id="priority-picker" role="group" aria-label="Priority">
+        <button type="button" data-level="low">Low</button>
+        <button type="button" data-level="med">Med</button>
+        <button type="button" data-level="high">High</button>
+      </div>
+      <span class="field-label">Due</span>
+      <input type="date" id="add-due" aria-label="Due date">
+    </div>
+  </form>
+
+  <ul class="list" id="list" role="list"></ul>
+
+  <footer class="status-bar">
+    <span class="count" id="count"></span>
+    <button class="clear-btn" id="clear-done">Clear completed</button>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var STORAGE_KEY = "task-ledger.items.v2";
+  var listEl = document.getElementById("list");
+  var formEl = document.getElementById("add-form");
+  var inputEl = document.getElementById("add-input");
+  var dueEl = document.getElementById("add-due");
+  var pickerEl = document.getElementById("priority-picker");
+  var countEl = document.getElementById("count");
+  var clearBtn = document.getElementById("clear-done");
+  var remindersEl = document.getElementById("reminders");
+
+  function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  var PRIORITY_LABEL = { low: "Low", med: "Med", high: "High" };
+  var PRIORITY_CYCLE = [null, "low", "med", "high"];
+
+  var pendingPriority = null;
+
+  function loadItems() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return migrateOld();
+      var parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function migrateOld() {
+    // carry over items from the pre-priority/due-date version, if present
+    try {
+      var raw = localStorage.getItem("task-ledger.items.v1");
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map(function (it) {
+        return { text: it.text, done: !!it.done, createdAt: it.createdAt || Date.now(), priority: null, dueDate: null };
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveItems(items) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch (e) { /* storage unavailable */ }
+  }
+
+  var items = loadItems();
+  items.forEach(function (it) {
+    if (!it.id) it.id = makeId();
+    if (it.priority === undefined) it.priority = null;
+    if (it.dueDate === undefined) it.dueDate = null;
+  });
+
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+
+  function fmtDue(dateStr) {
+    if (!dateStr) return "";
+    var parts = dateStr.split("-").map(Number);
+    var d = new Date(parts[0], parts[1] - 1, parts[2]);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+
+  function urgency(dateStr, done) {
+    if (!dateStr || done) return "none";
+    var today = todayStr();
+    if (dateStr < today) return "overdue";
+    if (dateStr === today) return "today";
+    return "upcoming";
+  }
+
+  var PRIORITY_RANK = { high: 3, med: 2, low: 1 };
+
+  function compareItems(a, b) {
+    if (!!a.done !== !!b.done) return a.done ? 1 : -1; // open tasks first
+    if (a.dueDate !== b.dueDate) {
+      if (!a.dueDate) return 1;   // undated sorts after dated
+      if (!b.dueDate) return -1;
+      return a.dueDate < b.dueDate ? -1 : 1; // soonest first
+    }
+    var ar = PRIORITY_RANK[a.priority] || 0;
+    var br = PRIORITY_RANK[b.priority] || 0;
+    return br - ar; // high priority first among same-due items
+  }
+
+  function setPickerState(level) {
+    pendingPriority = level;
+    var buttons = pickerEl.querySelectorAll("button");
+    buttons.forEach(function (b) {
+      b.setAttribute("data-active", b.getAttribute("data-level") === level ? "true" : "false");
+    });
+  }
+
+  pickerEl.addEventListener("click", function (e) {
+    var btn = e.target.closest("button");
+    if (!btn) return;
+    var level = btn.getAttribute("data-level");
+    setPickerState(pendingPriority === level ? null : level);
+  });
+
+  function renderReminders() {
+    var today = todayStr();
+    var overdue = items.filter(function (it) { return !it.done && it.dueDate && it.dueDate < today; });
+    var dueToday = items.filter(function (it) { return !it.done && it.dueDate === today; });
+
+    if (overdue.length === 0 && dueToday.length === 0) {
+      remindersEl.innerHTML = "";
+      remindersEl.style.display = "none";
+      return;
+    }
+
+    function chip(it) {
+      return '<button type="button" class="reminder-chip" data-target="task-' + it.id + '">' + escapeHtml(it.text) + "</button>";
+    }
+
+    function group(cls, suffix, list) {
+      if (list.length === 0) return "";
+      var noun = list.length === 1 ? "task" : "tasks";
+      return '<div class="reminder-group ' + cls + '"><p class="reminder-heading">' + list.length + " " + noun + " " + suffix +
+        '</p><div class="reminder-items">' + list.map(chip).join("") + "</div></div>";
+    }
+
+    remindersEl.innerHTML = group("group-overdue", "overdue", overdue) + group("group-today", "due today", dueToday);
+    remindersEl.style.display = "";
+
+    remindersEl.querySelectorAll(".reminder-chip").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var target = document.getElementById(btn.getAttribute("data-target"));
+        if (!target) return;
+        var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+        target.classList.add("flash");
+        setTimeout(function () { target.classList.remove("flash"); }, 1200);
+      });
+    });
+  }
+
+  function render() {
+    renderReminders();
+    listEl.innerHTML = "";
+
+    if (items.length === 0) {
+      var empty = document.createElement("li");
+      empty.className = "empty-state";
+      empty.innerHTML = '<span class="glyph">&#9634;</span>Nothing on the ledger yet.';
+      listEl.appendChild(empty);
+    } else {
+      items.slice().sort(compareItems).forEach(function (item) {
+        var li = document.createElement("li");
+        li.id = "task-" + item.id;
+        li.className = "item" + (item.done ? " done" : "");
+
+        var wrap = document.createElement("span");
+        wrap.className = "checkbox-wrap";
+        var cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = !!item.done;
+        cb.setAttribute("aria-label", item.done ? "Mark as not done" : "Mark as done");
+        cb.addEventListener("change", function () {
+          item.done = cb.checked;
+          saveItems(items);
+          render();
+        });
+        wrap.appendChild(cb);
+
+        var main = document.createElement("div");
+        main.className = "item-main";
+
+        var text = document.createElement("span");
+        text.className = "item-text";
+        text.textContent = item.text;
+        text.contentEditable = "true";
+        text.spellcheck = false;
+        text.addEventListener("blur", function () {
+          var val = text.textContent.replace(/\s+/g, " ").trim();
+          if (val === "") {
+            items = items.filter(function (it) { return it !== item; });
+            saveItems(items);
+            render();
+            return;
+          }
+          item.text = val;
+          saveItems(items);
+        });
+        text.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") { e.preventDefault(); text.blur(); }
+        });
+
+        var controls = document.createElement("div");
+        controls.className = "item-controls";
+
+        var pri = document.createElement("button");
+        pri.type = "button";
+        pri.className = "priority-pill";
+        if (item.priority) pri.setAttribute("data-level", item.priority);
+        pri.textContent = item.priority ? PRIORITY_LABEL[item.priority] : "+ priority";
+        pri.setAttribute("aria-label", "Priority: " + (item.priority ? PRIORITY_LABEL[item.priority] : "none") + ". Click to change.");
+        pri.addEventListener("click", function () {
+          var idx = PRIORITY_CYCLE.indexOf(item.priority || null);
+          item.priority = PRIORITY_CYCLE[(idx + 1) % PRIORITY_CYCLE.length];
+          saveItems(items);
+          render();
+        });
+
+        var due = document.createElement("input");
+        due.type = "date";
+        due.className = "due-input";
+        due.value = item.dueDate || "";
+        due.setAttribute("aria-label", "Due date");
+        var u = urgency(item.dueDate, item.done);
+        if (u === "overdue") due.classList.add("urgency-overdue");
+        if (u === "today") due.classList.add("urgency-today");
+        due.addEventListener("change", function () {
+          item.dueDate = due.value || null;
+          saveItems(items);
+          render();
+        });
+
+        var del = document.createElement("button");
+        del.type = "button";
+        del.className = "icon-btn";
+        del.setAttribute("aria-label", "Delete task");
+        del.innerHTML = "&#10005;";
+        del.addEventListener("click", function () {
+          items = items.filter(function (it) { return it !== item; });
+          saveItems(items);
+          render();
+        });
+
+        controls.appendChild(pri);
+        controls.appendChild(due);
+        controls.appendChild(del);
+
+        main.appendChild(text);
+        main.appendChild(controls);
+
+        li.appendChild(wrap);
+        li.appendChild(main);
+        listEl.appendChild(li);
+      });
+    }
+
+    var remaining = items.filter(function (it) { return !it.done; }).length;
+    var doneCount = items.length - remaining;
+    countEl.innerHTML = items.length === 0 ? "" : "<strong>" + remaining + "</strong> open &middot; " + doneCount + " done";
+    clearBtn.disabled = doneCount === 0;
+  }
+
+  formEl.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var val = inputEl.value.replace(/\s+/g, " ").trim();
+    if (val === "") return;
+    items.push({
+      id: makeId(),
+      text: val,
+      done: false,
+      createdAt: Date.now(),
+      priority: pendingPriority,
+      dueDate: dueEl.value || null
+    });
+    saveItems(items);
+    inputEl.value = "";
+    dueEl.value = "";
+    setPickerState(null);
+    inputEl.focus();
+    render();
+  });
+
+  clearBtn.addEventListener("click", function () {
+    items = items.filter(function (it) { return !it.done; });
+    saveItems(items);
+    render();
+  });
+
+  render();
+})();
+</script>
