@@ -37,6 +37,10 @@
     --pri-none-text: var(--text-faint);
     --pri-none-border: var(--border-strong);
 
+    /* tag semantics — categorization, distinct from both accent and priority hues */
+    --tag: #7a5c99;
+    --tag-soft: #ece5f2;
+
     --calendar-filter: none;
 
     --font-display: "Fraunces", Georgia, "Times New Roman", serif;
@@ -68,6 +72,9 @@
       --pri-low: #8fb0c4;
       --pri-low-soft: #1f2c33;
 
+      --tag: #c3a9e0;
+      --tag-soft: #2e2638;
+
       --calendar-filter: invert(0.85);
     }
   }
@@ -94,6 +101,9 @@
     --pri-med-soft: #362d1c;
     --pri-low: #8fb0c4;
     --pri-low-soft: #1f2c33;
+
+    --tag: #c3a9e0;
+    --tag-soft: #2e2638;
 
     --calendar-filter: invert(0.85);
   }
@@ -730,6 +740,75 @@
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }
+
+  /* --- tags: inline per-task input --- */
+
+  .tag-input {
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-radius: 20px;
+    padding: 3px 10px;
+    width: 92px;
+    cursor: text;
+    background: transparent;
+    border: 1px dashed var(--pri-none-border);
+    color: var(--pri-none-text);
+    outline: none;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, width 0.12s ease;
+  }
+
+  .tag-input:not(:placeholder-shown) {
+    border: 1px solid var(--tag);
+    background: var(--tag-soft);
+    color: var(--tag);
+  }
+
+  .tag-input:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    width: 140px;
+  }
+
+  li.done .tag-input { opacity: 0.55; }
+
+  /* --- tags: filter bar --- */
+
+  .tag-filter-bar {
+    display: none;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 14px 0 0;
+  }
+
+  .tag-filter-bar.show { display: flex; }
+
+  .tag-filter-pill {
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 600;
+    border-radius: 20px;
+    padding: 4px 12px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text-muted);
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  }
+
+  .tag-filter-pill:hover { border-color: var(--tag); }
+
+  .tag-filter-pill[data-active="true"] {
+    border-color: var(--tag);
+    background: var(--tag-soft);
+    color: var(--tag);
+  }
+
+  .tag-filter-pill:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
 </style>
 
 <div class="page">
@@ -759,8 +838,14 @@
       </div>
       <span class="field-label">Due</span>
       <input type="date" id="add-due" aria-label="Due date">
+      <span class="field-label">Tag</span>
+      <input type="text" id="add-tag" class="tag-input" placeholder="+ tag" maxlength="24" list="tag-options" aria-label="Project tag">
     </div>
   </form>
+
+  <datalist id="tag-options"></datalist>
+
+  <div class="tag-filter-bar" id="tag-filter-bar"></div>
 
   <ul class="list" id="list" role="list"></ul>
 
@@ -841,6 +926,10 @@
   var formEl = document.getElementById("add-form");
   var inputEl = document.getElementById("add-input");
   var dueEl = document.getElementById("add-due");
+  var tagEl = document.getElementById("add-tag");
+  var tagOptionsEl = document.getElementById("tag-options");
+  var tagFilterBarEl = document.getElementById("tag-filter-bar");
+  var activeTagFilter = null;
   var pickerEl = document.getElementById("priority-picker");
   var countEl = document.getElementById("count");
   var clearBtn = document.getElementById("clear-done");
@@ -935,6 +1024,7 @@
       if (it.dueDate === undefined) it.dueDate = null;
       if (it.done === undefined) it.done = false;
       if (it.archived === undefined) it.archived = false;
+      if (it.tag === undefined) it.tag = null;
     });
     return arr;
   }
@@ -974,6 +1064,12 @@
     renderSyncPanel();
   }
 
+  function rotateSync() {
+    var ok = confirm("Generate a new sync code? Your other devices will need to be reconnected with the new code — this device will stop sending updates to the old one.");
+    if (!ok) return;
+    connectSync(makeSyncCode());
+  }
+
   function renderSyncPanel() {
     var eyebrowEl = document.getElementById("eyebrow");
     if (eyebrowEl) eyebrowEl.textContent = syncCode ? "Personal · Synced across your devices" : "Personal · Private to this browser";
@@ -986,6 +1082,7 @@
           '<span class="sync-label">Synced across devices</span>' +
           '<span class="sync-code-chip">' + escapeHtml(syncCode) + '</span>' +
           '<button type="button" class="sync-link-btn" id="sync-copy-btn">Copy code</button>' +
+          '<button type="button" class="sync-link-btn" id="sync-rotate-btn">Rotate code</button>' +
           '<button type="button" class="sync-link-btn danger" id="sync-stop-btn">Stop syncing</button>' +
         '</div>';
     } else if (syncFormOpen) {
@@ -1040,6 +1137,9 @@
 
     var stopBtn = document.getElementById("sync-stop-btn");
     if (stopBtn) stopBtn.addEventListener("click", function () { disconnectSync(); });
+
+    var rotateBtn = document.getElementById("sync-rotate-btn");
+    if (rotateBtn) rotateBtn.addEventListener("click", function () { rotateSync(); });
   }
 
   function todayStr() {
@@ -1131,14 +1231,20 @@
   function render() {
     renderReminders();
     renderArchivePanel();
+    renderTagFilter();
     listEl.innerHTML = "";
 
     var visible = items.filter(function (it) { return !it.archived; });
+    if (activeTagFilter) {
+      visible = visible.filter(function (it) { return it.tag === activeTagFilter; });
+    }
 
     if (visible.length === 0) {
       var empty = document.createElement("li");
       empty.className = "empty-state";
-      empty.innerHTML = '<span class="glyph">&#9634;</span>Nothing on the ledger yet.';
+      empty.innerHTML = activeTagFilter
+        ? '<span class="glyph">&#9634;</span>Nothing tagged &ldquo;' + escapeHtml(activeTagFilter) + '&rdquo;.'
+        : '<span class="glyph">&#9634;</span>Nothing on the ledger yet.';
       listEl.appendChild(empty);
     } else {
       visible.slice().sort(compareItems).forEach(function (item) {
@@ -1212,6 +1318,23 @@
           render();
         });
 
+        var tagInput = document.createElement("input");
+        tagInput.type = "text";
+        tagInput.className = "tag-input";
+        tagInput.placeholder = "+ tag";
+        tagInput.maxLength = 24;
+        tagInput.value = item.tag || "";
+        tagInput.setAttribute("list", "tag-options");
+        tagInput.setAttribute("aria-label", "Project tag");
+        tagInput.addEventListener("change", function () {
+          item.tag = tagInput.value.trim() || null;
+          saveItems(items);
+          render();
+        });
+        tagInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") { e.preventDefault(); tagInput.blur(); }
+        });
+
         var del = document.createElement("button");
         del.type = "button";
         del.className = "icon-btn";
@@ -1230,6 +1353,7 @@
 
         controls.appendChild(pri);
         controls.appendChild(due);
+        controls.appendChild(tagInput);
         controls.appendChild(del);
 
         main.appendChild(text);
@@ -1303,6 +1427,41 @@
     renderArchivePanel();
   });
 
+  function renderTagFilter() {
+    var tags = [];
+    items.forEach(function (it) {
+      if (!it.archived && it.tag && tags.indexOf(it.tag) === -1) tags.push(it.tag);
+    });
+    tags.sort(function (a, b) { return a.localeCompare(b); });
+
+    // keep the "add task" autocomplete list in sync with tags actually in use
+    tagOptionsEl.innerHTML = tags.map(function (t) {
+      return '<option value="' + escapeHtml(t) + '"></option>';
+    }).join("");
+
+    if (tags.length === 0) {
+      tagFilterBarEl.classList.remove("show");
+      tagFilterBarEl.innerHTML = "";
+      if (activeTagFilter) activeTagFilter = null;
+      return;
+    }
+    if (activeTagFilter && tags.indexOf(activeTagFilter) === -1) activeTagFilter = null;
+
+    tagFilterBarEl.classList.add("show");
+    var html = '<button type="button" class="tag-filter-pill" data-active="' + (activeTagFilter === null) + '" data-tag="">All</button>';
+    tags.forEach(function (t) {
+      html += '<button type="button" class="tag-filter-pill" data-active="' + (activeTagFilter === t) + '" data-tag="' + escapeHtml(t) + '">' + escapeHtml(t) + '</button>';
+    });
+    tagFilterBarEl.innerHTML = html;
+
+    tagFilterBarEl.querySelectorAll(".tag-filter-pill").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        activeTagFilter = btn.getAttribute("data-tag") || null;
+        render();
+      });
+    });
+  }
+
   formEl.addEventListener("submit", function (e) {
     e.preventDefault();
     var val = inputEl.value.replace(/\s+/g, " ").trim();
@@ -1311,13 +1470,16 @@
       id: makeId(),
       text: val,
       done: false,
+      archived: false,
       createdAt: Date.now(),
       priority: pendingPriority,
-      dueDate: dueEl.value || null
+      dueDate: dueEl.value || null,
+      tag: tagEl.value.trim() || null
     });
     saveItems(items);
     inputEl.value = "";
     dueEl.value = "";
+    tagEl.value = "";
     setPickerState(null);
     inputEl.focus();
     render();
