@@ -933,12 +933,6 @@
   .timeline-bar.pri-low { background: var(--pri-low); }
   .timeline-bar.pri-none { background: var(--text-faint); }
 
-  .timeline-bar.milestone {
-    width: 22px;
-    border-radius: 50%;
-    padding: 0;
-  }
-
   .timeline-bar.done { opacity: 0.45; text-decoration: line-through; }
 
   .timeline-empty {
@@ -1636,6 +1630,16 @@
       return new Date(p[0], p[1] - 1, p[2]);
     }
 
+    // start defaults to the day the task was created when no explicit Start
+    // date is set, so every dated task gets a meaningful bar for free.
+    function taskSpan(it) {
+      var s = it.startDate ? toDate(it.startDate) : new Date(it.createdAt);
+      s.setHours(0, 0, 0, 0);
+      var e = it.dueDate ? toDate(it.dueDate) : new Date(s);
+      if (s > e) s = new Date(e); // guard against a start that lands after its own due date
+      return { start: s, end: e };
+    }
+
     var dated = items.filter(function (it) {
       return !it.archived && (it.dueDate || it.startDate) && (!activeTagFilter || it.tag === activeTagFilter);
     });
@@ -1653,10 +1657,9 @@
     var minD = new Date(today), maxD = new Date(today);
 
     dated.forEach(function (it) {
-      var s = it.startDate ? toDate(it.startDate) : (it.dueDate ? toDate(it.dueDate) : null);
-      var e = it.dueDate ? toDate(it.dueDate) : (it.startDate ? toDate(it.startDate) : null);
-      if (s && s < minD) minD = new Date(s);
-      if (e && e > maxD) maxD = new Date(e);
+      var span = taskSpan(it);
+      if (span.start < minD) minD = new Date(span.start);
+      if (span.end > maxD) maxD = new Date(span.end);
     });
     minD.setDate(minD.getDate() - 3);
     maxD.setDate(maxD.getDate() + 3);
@@ -1691,29 +1694,22 @@
 
     var rowsHtml = "";
     dated.slice().sort(compareItems).forEach(function (item) {
-      var s = item.startDate ? toDate(item.startDate) : toDate(item.dueDate);
-      var e = item.dueDate ? toDate(item.dueDate) : toDate(item.startDate);
-      var startIdx = dayIndex(s);
-      var endIdx = dayIndex(e);
-      var isMilestone = !item.startDate;
-      var barLeft, barWidth;
-      if (isMilestone) {
-        barLeft = endIdx * DAY_WIDTH + (DAY_WIDTH - 22) / 2;
-        barWidth = 22;
-      } else {
-        barLeft = startIdx * DAY_WIDTH + 3;
-        barWidth = Math.max(22, (endIdx - startIdx + 1) * DAY_WIDTH - 6);
-      }
+      var span = taskSpan(item);
+      var startIdx = dayIndex(span.start);
+      var endIdx = dayIndex(span.end);
+      var barLeft = startIdx * DAY_WIDTH + 3;
+      var barWidth = Math.max(22, (endIdx - startIdx + 1) * DAY_WIDTH - 6);
       var priClass = item.priority ? "pri-" + item.priority : "pri-none";
+      var autoStart = !item.startDate ? ' title="Started ' + escapeHtml(span.start.toLocaleDateString()) + " (auto, from when this was added) → due " + escapeHtml(span.end.toLocaleDateString()) + '"' : "";
       rowsHtml +=
         '<div class="timeline-track-row">' +
           '<div class="timeline-name-cell' + (item.done ? " done" : "") + '">' + escapeHtml(item.text) + "</div>" +
           '<div class="timeline-days">' +
             '<div class="timeline-track-bg">' + bgHtml + "</div>" +
             todayLineHtml +
-            '<div class="timeline-bar ' + priClass + (isMilestone ? " milestone" : "") + (item.done ? " done" : "") +
-              '" style="left:' + barLeft + "px;width:" + barWidth + 'px" title="' + escapeHtml(item.text) + '">' +
-              (isMilestone ? "" : escapeHtml(item.text)) +
+            '<div class="timeline-bar ' + priClass + (item.done ? " done" : "") +
+              '" style="left:' + barLeft + "px;width:" + barWidth + 'px"' + autoStart + ">" +
+              escapeHtml(item.text) +
             "</div>" +
           "</div>" +
         "</div>";
