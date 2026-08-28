@@ -660,6 +660,7 @@
   .archive-item {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
     padding: 8px 2px;
     border-bottom: 1px solid var(--border);
@@ -674,6 +675,19 @@
     color: var(--text-faint);
     text-decoration: line-through;
     text-decoration-color: var(--border-strong);
+    overflow-wrap: break-word;
+  }
+
+  .archive-item-notes {
+    flex-basis: 100%;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin: 2px 0 0;
+    white-space: pre-wrap;
     overflow-wrap: break-word;
   }
 
@@ -775,6 +789,66 @@
   }
 
   li.done .tag-input { opacity: 0.55; }
+
+  /* --- notes --- */
+
+  .notes-btn {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-content: center;
+    font-size: 12.5px;
+    background: transparent;
+    border: 1px dashed var(--pri-none-border);
+    border-radius: 6px;
+    color: var(--pri-none-text);
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  }
+
+  .notes-btn:hover { border-color: var(--tag); color: var(--tag); }
+
+  .notes-btn.has-notes {
+    border: 1px solid var(--tag);
+    background: var(--tag-soft);
+    color: var(--tag);
+  }
+
+  .notes-btn[aria-expanded="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .notes-input {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 8px;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 8px 10px;
+    resize: vertical;
+    min-height: 56px;
+    outline: none;
+  }
+
+  .notes-input::placeholder { color: var(--text-faint); }
+
+  .notes-input:focus-visible {
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .notes-btn:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
 
   /* --- tags: filter bar --- */
 
@@ -1096,6 +1170,7 @@
   var tagOptionsEl = document.getElementById("tag-options");
   var tagFilterBarEl = document.getElementById("tag-filter-bar");
   var activeTagFilter = null;
+  var expandedNotes = {};
   var viewToggleEl = document.getElementById("view-toggle");
   var listViewEl = document.getElementById("list-view");
   var timelineViewEl = document.getElementById("timeline-view");
@@ -1197,6 +1272,7 @@
       if (it.archived === undefined) it.archived = false;
       if (it.tag === undefined) it.tag = null;
       if (it.startDate === undefined) it.startDate = null;
+      if (it.notes === undefined) it.notes = null;
     });
     return arr;
   }
@@ -1536,14 +1612,40 @@
           });
         });
 
+        var notesBtn = document.createElement("button");
+        notesBtn.type = "button";
+        notesBtn.className = "notes-btn" + (item.notes ? " has-notes" : "");
+        notesBtn.innerHTML = "&#9998;";
+        notesBtn.setAttribute("aria-label", item.notes ? "Edit note" : "Add a note");
+        var isExpanded = !!expandedNotes[item.id];
+        notesBtn.setAttribute("aria-expanded", String(isExpanded));
+        notesBtn.addEventListener("click", function () {
+          expandedNotes[item.id] = !expandedNotes[item.id];
+          render();
+        });
+
         controls.appendChild(pri);
         controls.appendChild(start);
         controls.appendChild(due);
         controls.appendChild(tagInput);
+        controls.appendChild(notesBtn);
         controls.appendChild(del);
 
         main.appendChild(text);
         main.appendChild(controls);
+
+        if (isExpanded) {
+          var notesInput = document.createElement("textarea");
+          notesInput.className = "notes-input";
+          notesInput.placeholder = "Why did you check this off (or not)? Any context for later…";
+          notesInput.value = item.notes || "";
+          notesInput.addEventListener("change", function () {
+            item.notes = notesInput.value.trim() || null;
+            saveItems(items);
+            render();
+          });
+          main.appendChild(notesInput);
+        }
 
         li.appendChild(wrap);
         li.appendChild(main);
@@ -1604,6 +1706,14 @@
       row.appendChild(text);
       row.appendChild(restoreBtn);
       row.appendChild(deleteBtn);
+
+      if (item.notes) {
+        var notes = document.createElement("p");
+        notes.className = "archive-item-notes";
+        notes.textContent = item.notes;
+        row.appendChild(notes);
+      }
+
       archiveListEl.appendChild(row);
     });
   }
