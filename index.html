@@ -657,6 +657,28 @@
     margin: 0;
   }
 
+  .archive-search {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 0 0 12px;
+    outline: none;
+  }
+
+  .archive-search::placeholder { color: var(--text-faint); }
+
+  .archive-search:focus-visible {
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
   .archive-item {
     display: flex;
     align-items: center;
@@ -1099,6 +1121,7 @@
 
     <section class="archive-panel" id="archive-panel">
       <p class="archive-heading">Archived tasks</p>
+      <input type="text" class="archive-search" id="archive-search" placeholder="Search archived tasks and notes…" aria-label="Search archive">
       <div id="archive-list"></div>
     </section>
   </div>
@@ -1183,6 +1206,8 @@
   var archivePanelEl = document.getElementById("archive-panel");
   var archiveListEl = document.getElementById("archive-list");
   var archiveToggleBtn = document.getElementById("archive-toggle-btn");
+  var archiveSearchEl = document.getElementById("archive-search");
+  var archiveSearchQuery = "";
   var exportBtn = document.getElementById("export-btn");
   var importBtn = document.getElementById("import-btn");
   var importFileEl = document.getElementById("import-file");
@@ -1677,13 +1702,26 @@
     archivePanelEl.classList.toggle("open", archiveOpen);
     if (!archiveOpen) return;
 
+    archiveSearchEl.hidden = archived.length === 0;
+
     if (archived.length === 0) {
       archiveListEl.innerHTML = '<p class="archive-empty">Nothing archived yet — deleted and cleared tasks land here.</p>';
       return;
     }
 
+    var query = archiveSearchQuery.trim().toLowerCase();
+    var filtered = !query ? archived : archived.filter(function (it) {
+      return (it.text || "").toLowerCase().indexOf(query) !== -1 ||
+        (it.notes || "").toLowerCase().indexOf(query) !== -1;
+    });
+
+    if (filtered.length === 0) {
+      archiveListEl.innerHTML = '<p class="archive-empty">No archived tasks or notes match &ldquo;' + escapeHtml(archiveSearchQuery.trim()) + '&rdquo;.</p>';
+      return;
+    }
+
     archiveListEl.innerHTML = "";
-    archived.slice().sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); }).forEach(function (item) {
+    filtered.slice().sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); }).forEach(function (item) {
       var row = document.createElement("div");
       row.className = "archive-item";
 
@@ -1720,6 +1758,11 @@
 
   archiveToggleBtn.addEventListener("click", function () {
     archiveOpen = !archiveOpen;
+    renderArchivePanel();
+  });
+
+  archiveSearchEl.addEventListener("input", function () {
+    archiveSearchQuery = archiveSearchEl.value;
     renderArchivePanel();
   });
 
