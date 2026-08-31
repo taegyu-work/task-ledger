@@ -872,6 +872,101 @@
     outline-offset: 2px;
   }
 
+  /* --- alarms --- */
+
+  .alarm-pill {
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-radius: 20px;
+    padding: 3px 10px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px dashed var(--pri-none-border);
+    color: var(--pri-none-text);
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  }
+
+  .alarm-pill.set,
+  .alarm-pill[aria-expanded="true"] {
+    border: 1px solid var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .alarm-pill:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .alarm-datetime-input {
+    display: block;
+    margin-top: 8px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 6px 10px;
+    outline: none;
+  }
+
+  .alarm-datetime-input:focus-visible {
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .alarm-banner {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-12px);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 16px 12px 18px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    z-index: 200;
+    max-width: calc(100vw - 48px);
+  }
+
+  .alarm-banner.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+
+  .alarm-banner-dismiss {
+    flex-shrink: 0;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.16);
+    border: none;
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    color: inherit;
+  }
+
+  .alarm-banner-dismiss:hover { background: rgba(255, 255, 255, 0.28); }
+
+  .alarm-banner-dismiss:focus-visible {
+    outline: 2px solid var(--accent-contrast);
+    outline-offset: 2px;
+  }
+
   /* --- tags: filter bar --- */
 
   .tag-filter-bar {
@@ -1134,6 +1229,11 @@
   <button type="button" class="toast-undo-btn" id="toast-undo-btn">Undo</button>
 </div>
 
+<div class="alarm-banner" id="alarm-banner" role="alert" aria-live="assertive">
+  <span id="alarm-banner-text"></span>
+  <button type="button" class="alarm-banner-dismiss" id="alarm-banner-dismiss">Dismiss</button>
+</div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -1194,6 +1294,13 @@
   var tagFilterBarEl = document.getElementById("tag-filter-bar");
   var activeTagFilter = null;
   var expandedNotes = {};
+  var expandedAlarms = {};
+  var alarmBannerEl = document.getElementById("alarm-banner");
+  var alarmBannerTextEl = document.getElementById("alarm-banner-text");
+  var alarmBannerDismissBtn = document.getElementById("alarm-banner-dismiss");
+  var alarmQueue = [];
+  var firedAlarms = {};
+  try { firedAlarms = JSON.parse(localStorage.getItem("task-ledger.fired-alarms") || "{}"); } catch (e) {}
   var viewToggleEl = document.getElementById("view-toggle");
   var listViewEl = document.getElementById("list-view");
   var timelineViewEl = document.getElementById("timeline-view");
@@ -1298,9 +1405,81 @@
       if (it.tag === undefined) it.tag = null;
       if (it.startDate === undefined) it.startDate = null;
       if (it.notes === undefined) it.notes = null;
+      if (it.alarmAt === undefined) it.alarmAt = null;
     });
     return arr;
   }
+
+  function toLocalDatetimeInputValue(d) {
+    function pad(n) { return String(n).padStart(2, "0"); }
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+
+  function formatAlarmLabel(iso) {
+    var d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " +
+      d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+
+  function playAlarmSound() {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      var ctx = new Ctx();
+      [0, 0.28].forEach(function (delay) {
+        var o = ctx.createOscillator();
+        var g = ctx.createGain();
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.type = "sine";
+        o.frequency.value = 880;
+        var t0 = ctx.currentTime + delay;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.3, t0 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+        o.start(t0);
+        o.stop(t0 + 0.24);
+      });
+      setTimeout(function () { ctx.close(); }, 900);
+    } catch (e) { /* audio unavailable — the on-screen banner still shows */ }
+  }
+
+  function saveFiredAlarms() {
+    try { localStorage.setItem("task-ledger.fired-alarms", JSON.stringify(firedAlarms)); } catch (e) {}
+  }
+
+  function showNextAlarm() {
+    var item = alarmQueue.shift();
+    if (!item) return;
+    alarmBannerTextEl.textContent = item.text;
+    alarmBannerEl.classList.add("show");
+    playAlarmSound();
+    if (window.Notification && Notification.permission === "granted") {
+      try { new Notification("Task Ledger alarm", { body: item.text }); } catch (e) {}
+    }
+  }
+
+  function checkAlarms() {
+    var now = Date.now();
+    var changed = false;
+    items.forEach(function (it) {
+      if (it.archived || it.done || !it.alarmAt) return;
+      if (new Date(it.alarmAt).getTime() > now) return;
+      if (firedAlarms[it.id] === it.alarmAt) return;
+      firedAlarms[it.id] = it.alarmAt;
+      changed = true;
+      alarmQueue.push(it);
+    });
+    if (changed) saveFiredAlarms();
+    if (!alarmBannerEl.classList.contains("show") && alarmQueue.length > 0) showNextAlarm();
+  }
+
+  alarmBannerDismissBtn.addEventListener("click", function () {
+    alarmBannerEl.classList.remove("show");
+    setTimeout(function () { if (alarmQueue.length > 0) showNextAlarm(); }, 300);
+  });
+
+  setInterval(checkAlarms, 20000);
+  setTimeout(checkAlarms, 2000);
 
   var items = normalizeItems(loadItems());
 
@@ -1649,11 +1828,24 @@
           render();
         });
 
+        var alarmBtn = document.createElement("button");
+        alarmBtn.type = "button";
+        alarmBtn.className = "alarm-pill" + (item.alarmAt ? " set" : "");
+        alarmBtn.textContent = item.alarmAt ? formatAlarmLabel(item.alarmAt) : "+ alarm";
+        alarmBtn.setAttribute("aria-label", item.alarmAt ? "Change alarm time" : "Set an alarm");
+        var alarmExpanded = !!expandedAlarms[item.id];
+        alarmBtn.setAttribute("aria-expanded", String(alarmExpanded));
+        alarmBtn.addEventListener("click", function () {
+          expandedAlarms[item.id] = !expandedAlarms[item.id];
+          render();
+        });
+
         controls.appendChild(pri);
         controls.appendChild(start);
         controls.appendChild(due);
         controls.appendChild(tagInput);
         controls.appendChild(notesBtn);
+        controls.appendChild(alarmBtn);
         controls.appendChild(del);
 
         main.appendChild(text);
@@ -1670,6 +1862,27 @@
             render();
           });
           main.appendChild(notesInput);
+        }
+
+        if (alarmExpanded) {
+          var alarmInput = document.createElement("input");
+          alarmInput.type = "datetime-local";
+          alarmInput.className = "alarm-datetime-input";
+          alarmInput.setAttribute("aria-label", "Alarm date and time");
+          if (item.alarmAt) alarmInput.value = toLocalDatetimeInputValue(new Date(item.alarmAt));
+          alarmInput.addEventListener("change", function () {
+            if (alarmInput.value) {
+              item.alarmAt = new Date(alarmInput.value).toISOString();
+              if (window.Notification && Notification.permission === "default") {
+                Notification.requestPermission();
+              }
+            } else {
+              item.alarmAt = null;
+            }
+            saveItems(items);
+            render();
+          });
+          main.appendChild(alarmInput);
         }
 
         li.appendChild(wrap);
